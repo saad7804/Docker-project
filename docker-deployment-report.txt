@@ -1,0 +1,291 @@
+OPSMATE DOCKER DEPLOYMENT REPORT
+
+1. Project Overview
+
+The OpsMate project demonstrates the complete process of containerizing
+and deploying an application using Docker and AWS. The application was
+containerized using Docker, deployed locally using Docker Compose with
+a MySQL database, pushed to Amazon ECR, and finally deployed on Amazon
+ECS using AWS Fargate.
+
+
+2. Docker Installation
+
+An Ubuntu EC2 instance was launched on AWS and used as the Docker server.
+Docker Engine was installed using the Ubuntu package manager.
+
+Commands used:
+sudo apt update
+sudo apt install docker.io -y
+docker --version
+
+The Docker installation was verified successfully.
+
+
+3. Docker Daemon Management
+
+The Docker daemon was managed using systemctl.
+
+Commands used:
+sudo systemctl status docker
+sudo systemctl stop docker
+sudo systemctl start docker
+sudo systemctl restart docker
+sudo systemctl enable docker
+
+The Ubuntu user was added to the Docker group so Docker commands could
+be executed without sudo.
+
+Command:
+sudo usermod -aG docker $USER
+
+Docker functionality was verified using:
+docker run hello-world
+
+
+4. Docker Image Creation
+
+A Dockerfile was created for the OpsMate Node.js application.
+
+The Dockerfile used node:20-alpine as the base image. It defined /app
+as the working directory, copied package files, installed dependencies,
+copied the application source code, exposed port 3000, and started the
+application using npm start.
+
+The Docker image was built using:
+docker build -t opsmate:v1 .
+
+The image was verified using:
+docker images
+
+Image details were checked using:
+docker inspect opsmate:v1
+
+
+5. Docker Container Management
+
+The OpsMate Docker container was started using:
+
+docker run -d -p 3000:3000 --name opsmate-container opsmate:v1
+
+The running container was verified using:
+docker ps
+
+Container management commands tested included:
+docker stop opsmate-container
+docker start opsmate-container
+docker restart opsmate-container
+docker rm opsmate-container
+
+The application was accessed through the EC2 public IP on port 3000.
+
+
+6. Docker Resource Usage
+
+Docker disk usage was checked using:
+
+docker system df
+
+Unused build cache was cleaned using:
+
+docker builder prune
+
+These commands help identify Docker resource usage and remove
+unnecessary build data.
+
+
+7. Docker Logs and Troubleshooting
+
+Application logs were checked using:
+
+docker logs opsmate-container
+
+Container configuration and details were checked using:
+
+docker inspect opsmate-container
+
+Logs were useful for identifying application and container errors.
+
+
+8. Docker Compose Deployment
+
+Docker Compose was used to deploy the OpsMate application with a
+MySQL 8.0 database.
+
+The compose.yaml file defined:
+- OpsMate application service
+- MySQL database service
+- Environment variables
+- Service dependency
+- Custom Docker network
+- Persistent database volume
+- Port mapping
+
+The deployment was started using:
+
+docker compose up -d
+
+Services were verified using:
+
+docker compose ps
+
+Logs were checked using:
+
+docker compose logs
+
+Database connectivity was tested through the /db endpoint.
+
+The Compose environment was also managed using:
+
+docker compose stop
+docker compose start
+docker compose down
+
+
+9. Amazon ECR Integration
+
+A private Amazon ECR repository named "opsmate" was created.
+
+Docker was authenticated with Amazon ECR using the AWS CLI.
+
+The OpsMate image was tagged with the ECR repository URI and pushed
+to Amazon ECR.
+
+Version 1 was pushed as:
+opsmate:v1
+
+A second updated image was later pushed as:
+opsmate:v2
+
+Both container image versions were stored in Amazon ECR.
+
+
+10. Amazon ECS and AWS Fargate Deployment
+
+An existing ECS cluster named "opsmate_cluster" was used.
+
+An ECS task definition named "opsmate-task" was configured with:
+- AWS Fargate
+- Linux operating system
+- X86_64 architecture
+- 0.25 vCPU
+- 0.5 GB memory
+- OpsMate ECR image
+- Container port 3000
+- CloudWatch logging
+
+An ECS service named "opsmate-service" was created with a desired task
+count of 1.
+
+Networking was configured using a VPC, public subnet, security group,
+and public IP.
+
+The security group allowed TCP traffic on port 3000 for project testing.
+
+The Fargate task successfully reached the RUNNING state, and the
+OpsMate application was accessed through the task's public IP.
+
+
+11. Application Update and Redeployment
+
+The OpsMate application was updated to Version 2.
+
+A new Docker image was created using:
+
+docker build -t opsmate:v2 .
+
+The v2 image was tagged and pushed to Amazon ECR.
+
+A new revision of the ECS task definition was created using the v2
+image.
+
+The ECS service was updated to use the new task definition revision.
+
+ECS performed the new deployment, and OpsMate Version 2 was
+successfully verified from the browser.
+
+
+12. Problems Faced and Troubleshooting
+
+Problem 1:
+Port 3000 was already being used by the standalone OpsMate container
+when Docker Compose was started.
+
+Solution:
+The existing container was stopped and removed before starting the
+Compose services.
+
+Problem 2:
+The docker-compose-plugin package was not available through the
+configured Ubuntu repositories.
+
+Solution:
+Docker Compose v2 was installed through the available docker-compose
+package and used with the "docker compose" command.
+
+Problem 3:
+The OpsMate application container exited after starting with Compose.
+
+Solution:
+Docker Compose logs were checked and a syntax error was discovered in
+server.js. The incorrect first line was corrected and the image was
+rebuilt.
+
+Problem 4:
+AWS CLI was initially not installed on the Ubuntu EC2 instance.
+
+Solution:
+AWS CLI was installed and configured before authenticating Docker with
+Amazon ECR.
+
+
+13. Security Considerations
+
+Docker and AWS deployments should follow security best practices.
+
+Important considerations include:
+- Do not store AWS access keys in source code.
+- Do not push AWS credentials to GitHub.
+- Use IAM roles and least-privilege permissions where possible.
+- Store application secrets securely.
+- Avoid hardcoding database passwords in production.
+- Restrict security group access instead of exposing unnecessary ports
+  to the entire internet.
+- Regularly update Docker base images and application dependencies.
+
+
+14. Optimization Techniques
+
+The node:20-alpine image was used to reduce the container image size.
+
+Other optimization techniques include:
+- Using a .dockerignore file.
+- Removing unnecessary files from images.
+- Cleaning unused Docker resources.
+- Using specific image versions.
+- Monitoring container resource usage.
+- Keeping Dockerfile layers efficient.
+
+
+15. Future Improvements
+
+Future improvements can include:
+- Using an Application Load Balancer with ECS.
+- Configuring HTTPS.
+- Using AWS Secrets Manager for sensitive information.
+- Using Amazon RDS instead of a containerized database for production.
+- Implementing automatic CI/CD deployment.
+- Adding ECS auto scaling.
+- Adding improved CloudWatch monitoring and alarms.
+
+
+16. Conclusion
+
+The OpsMate project successfully demonstrated Docker containerization
+and AWS container deployment. Docker Engine, images, containers,
+Docker Compose, networking, persistent storage, Amazon ECR, Amazon ECS,
+and AWS Fargate were used during the project.
+
+The application was successfully containerized, tested, pushed to a
+private ECR repository, deployed using ECS Fargate, updated to Version
+2, and redeployed successfully.
